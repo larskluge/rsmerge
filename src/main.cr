@@ -17,8 +17,8 @@ help if src_url.blank? || dst_url.blank?
 
 def sort_by_ids(ids)
   ids.sort do |a,b|
-    a1, a2 = a.split("-").map(&:to_u64)
-    b1, b2 = b.split("-").map(&:to_u64)
+    a1, a2 = a.split("-").map(&.to_u64)
+    b1, b2 = b.split("-").map(&.to_u64)
 
     res = a1 <=> b1
     # puts "a1=#{a1} <=> b1=#{b1}        a2=#{a2} <=> b2=#{b2}    => #{res}"
@@ -86,6 +86,10 @@ class Stream
       latest = Conn.next_key(entries.keys.last.as(String))
     end
   end
+
+  def count
+    conn.redis.xlen(conn.key)
+  end
 end
 
 class Hashset
@@ -109,15 +113,20 @@ class Hashset
   end
 
   def each
-    puts ids_key
-    p conn.redis.smembers(ids_key).first
-    # ids = [] of String #sort_by_ids(conn.redis.smembers(ids_key).map(&:to_s))
-    ids = %w(0-0 0-1)
+    ids = conn.redis.smembers(ids_key).map(&.to_s)
+    ids = sort_by_ids(ids)
 
     ids.each do |id|
-      entry = conn.redis.hget(key, id).as(String)
-      yield id, entry
+      if entry = conn.redis.hget(key, id)
+        yield id, entry.as(String)
+      end
     end
+  end
+
+  def count
+    res = conn.redis.hlen(key)
+    raise "Error: hash and set have different counts" if res != conn.redis.scard(ids_key)
+    res
   end
 end
 
@@ -125,7 +134,6 @@ end
 src_conn = Conn.new(src_url)
 dst_conn = Conn.new(dst_url)
 
-# src, dst = nil, nil
 src = Stream.new src_conn
 dst = Hashset.new dst_conn
 
@@ -153,6 +161,16 @@ when nil
 end
 
 
+# Copy entries
 src.each do |id, entry|
   dst.add id, entry
 end
+
+sc, dc = src.count, dst.count
+if sc == dc
+  print "OK "
+else
+  print "ERROR "
+end
+puts "src=#{sc} == dst=#{dc}"
+exit (dc - sc).to_i
