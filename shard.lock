@@ -1,0 +1,10 @@
+version: 1.0
+shards:
+  pool:
+    github: ysbaddaden/pool
+    version: 0.2.3
+
+  redis:
+    github: aemadrid/crystal-redis
+    commit: 85411f0d8fbdab3c8023427ef7e1ed5b55e36666
+

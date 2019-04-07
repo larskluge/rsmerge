@@ -1,0 +1,19 @@
+name: rsmerge
+version: 0.1.0
+
+authors:
+  - Lars Kluge <l@larskluge.com>
+
+description: |
+  Writes Redis Stream entries into a temporary hash/set structure to enable the merge of small streams
+
+dependencies:
+  redis:
+    github: aemadrid/crystal-redis
+    branch: feature/streams
+
+targets:
+  rsmerge:
+    main: src/main.cr
+
+license: MIT
